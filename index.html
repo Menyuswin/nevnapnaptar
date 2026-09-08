@@ -1,0 +1,555 @@
+<title>Névnapnaptár</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF3F1;
+    --surface:#FFFFFF;
+    --surface-2:#F5F8F6;
+    --ink:#152B27;
+    --muted:#5B7770;
+    --line:#D7E3DE;
+    --accent:#0B6E5B;
+    --accent-ink:#F4FBF8;
+    --gold:#B8863B;
+    --gold-soft:#E9D9B8;
+    --hit:#FDF3E3;
+    --shadow: 0 1px 2px rgba(15,40,33,.06), 0 8px 24px -12px rgba(15,40,33,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0E1F1C;
+      --surface:#152F2A;
+      --surface-2:#123330;
+      --ink:#EAF3F0;
+      --muted:#8FB0A7;
+      --line:#24443D;
+      --accent:#3ECBA3;
+      --accent-ink:#08201B;
+      --gold:#E3B65B;
+      --gold-soft:#3B3220;
+      --hit:#2A2413;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E1F1C;
+    --surface:#152F2A;
+    --surface-2:#123330;
+    --ink:#EAF3F0;
+    --muted:#8FB0A7;
+    --line:#24443D;
+    --accent:#3ECBA3;
+    --accent-ink:#08201B;
+    --gold:#E3B65B;
+    --gold-soft:#3B3220;
+    --hit:#2A2413;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Karla', ui-sans-serif, system-ui, sans-serif;
+    padding:clamp(18px, 4vw, 44px);
+    display:flex;
+    justify-content:center;
+  }
+  .page{ width:100%; max-width:1080px; }
+
+  h1,h2,h3{ font-family:'Fraunces', Georgia, 'Times New Roman', serif; margin:0; text-wrap:balance; }
+
+  /* ---- top bar ---- */
+  .topbar{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:20px;
+    flex-wrap:wrap;
+    margin-bottom:22px;
+  }
+  .brand{ display:flex; flex-direction:column; gap:4px; }
+  .brand .eyebrow{
+    font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--muted); font-weight:600;
+  }
+  .brand h1{ font-size:clamp(1.6rem,3vw,2.1rem); font-weight:600; }
+
+  .search-wrap{ position:relative; width:min(320px, 100%); }
+  .search-wrap label{
+    display:block; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; margin-bottom:6px;
+  }
+  .search-row{ display:flex; gap:8px; }
+  #search{
+    flex:1; min-width:0;
+    font:inherit; font-size:.95rem;
+    padding:9px 12px; border-radius:9px;
+    border:1px solid var(--line); background:var(--surface); color:var(--ink);
+  }
+  #search:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  #search-clear{
+    border:1px solid var(--line); background:var(--surface); color:var(--muted);
+    border-radius:9px; padding:0 12px; font:inherit; cursor:pointer;
+  }
+  #search-clear:hover{ color:var(--ink); }
+  #search-result{
+    margin-top:8px; font-size:.85rem; color:var(--muted); min-height:1.2em;
+  }
+  #search-result strong{ color:var(--ink); font-weight:600; }
+  #search-result.hit{ color:var(--accent); }
+
+  /* ---- layout ---- */
+  .layout{
+    display:grid;
+    grid-template-columns: 300px 1fr;
+    gap:22px;
+    align-items:start;
+  }
+  @media (max-width: 760px){
+    .layout{ grid-template-columns: 1fr; }
+  }
+
+  .rail{ display:flex; flex-direction:column; gap:18px; }
+
+  /* ---- hero flip card ---- */
+  .hero{
+    background:var(--accent);
+    color:var(--accent-ink);
+    border-radius:16px;
+    padding:22px 22px 18px;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+  .hero .eyebrow{
+    font-size:.7rem; letter-spacing:.16em; text-transform:uppercase;
+    opacity:.8; font-weight:700; margin-bottom:10px;
+  }
+  .hero .date-row{ display:flex; align-items:baseline; gap:14px; }
+  .hero .daynum{
+    font-family:'Fraunces', serif; font-weight:600;
+    font-size:clamp(3.4rem, 8vw, 4.4rem); line-height:.85;
+    font-variant-numeric:tabular-nums;
+  }
+  .hero .date-meta{ display:flex; flex-direction:column; gap:2px; padding-bottom:4px; }
+  .hero .weekday{ font-size:1.05rem; font-weight:600; text-transform:capitalize; }
+  .hero .monthyear{ font-size:.85rem; opacity:.85; }
+  .hero .names{
+    margin-top:14px;
+    font-family:'Fraunces', serif; font-style:italic; font-weight:500;
+    font-size:clamp(1.3rem, 3vw, 1.6rem);
+    text-wrap:balance;
+  }
+  .hero .names .empty{ font-style:normal; font-size:1rem; opacity:.85; }
+  .hero .motif{
+    height:7px; margin-top:16px; border-radius:4px;
+    background:repeating-linear-gradient(115deg,
+      var(--gold) 0 6px, transparent 6px 12px);
+    opacity:.85;
+  }
+
+  /* ---- upcoming ---- */
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; box-shadow:var(--shadow);
+  }
+  .card h2{
+    font-size:.72rem; letter-spacing:.12em; text-transform:uppercase;
+    font-family:'Karla',sans-serif; font-weight:700; color:var(--muted);
+    margin-bottom:10px;
+  }
+  .upcoming-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; }
+  .upcoming-list li{
+    display:flex; justify-content:space-between; gap:10px;
+    padding:8px 0; border-top:1px solid var(--line);
+    font-size:.9rem;
+  }
+  .upcoming-list li:first-child{ border-top:none; }
+  .upcoming-list .u-date{ color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .upcoming-list .u-names{ text-align:right; font-weight:600; }
+  .upcoming-list .u-names.empty{ font-weight:400; color:var(--muted); }
+
+  /* ---- calendar ---- */
+  .cal-card{ background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
+  .cal-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px; border-bottom:1px solid var(--line);
+    gap:10px; flex-wrap:wrap;
+  }
+  .cal-title{ font-size:1.15rem; font-weight:600; text-transform:capitalize; }
+  .cal-nav{ display:flex; align-items:center; gap:6px; }
+  .cal-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:32px; height:32px; border-radius:8px;
+    border:1px solid var(--line); background:var(--surface-2); color:var(--ink);
+    cursor:pointer; font:inherit;
+  }
+  .cal-btn:hover{ border-color:var(--accent); color:var(--accent); }
+  .cal-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .today-btn{
+    width:auto; padding:0 12px; font-size:.8rem; font-weight:600;
+    letter-spacing:.03em;
+  }
+
+  .weekrow, .cal-grid{
+    display:grid; grid-template-columns:repeat(7,1fr);
+  }
+  .weekrow{ border-bottom:1px solid var(--line); background:var(--surface-2); }
+  .weekrow div{
+    text-align:center; font-size:.7rem; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--muted); padding:8px 4px;
+  }
+  .cal-grid{ grid-auto-rows:minmax(64px, auto); }
+  .cell{
+    border-top:1px solid var(--line); border-left:1px solid var(--line);
+    padding:6px 7px; display:flex; flex-direction:column; gap:3px;
+    cursor:pointer; background:var(--surface); transition:background .12s ease;
+  }
+  .cell:nth-child(7n+1){ border-left:none; }
+  .cell:hover{ background:var(--surface-2); }
+  .cell:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+  .cell .dnum{
+    font-size:.8rem; font-weight:700; font-variant-numeric:tabular-nums;
+    width:22px; height:22px; display:flex; align-items:center; justify-content:center;
+    border-radius:50%;
+  }
+  .cell .dnames{ font-size:.7rem; line-height:1.25; color:var(--muted); }
+  .cell.out{ background:var(--surface-2); }
+  .cell.out .dnum{ color:var(--muted); opacity:.6; }
+  .cell.out .dnames{ opacity:.55; }
+  .cell.today .dnum{ background:var(--gold); color:var(--accent-ink); }
+  .cell.today{ background:var(--gold-soft); }
+  .cell.today .dnames{ color:var(--ink); font-weight:600; }
+  .cell.selected{ box-shadow: inset 0 0 0 2px var(--accent); }
+  .cell.hit{ background:var(--hit); }
+
+  .selected-strip{
+    padding:10px 18px; border-top:1px solid var(--line);
+    font-size:.85rem; color:var(--muted); background:var(--surface-2);
+    min-height:2.2em; display:flex; align-items:center;
+  }
+  .selected-strip strong{ color:var(--ink); font-weight:700; margin-left:4px;}
+
+  footer{
+    margin-top:22px; font-size:.78rem; color:var(--muted); text-align:center;
+    line-height:1.5;
+  }
+
+  @media (max-width:480px){
+    .cell .dnames{ font-size:.64rem; }
+    .cal-grid{ grid-auto-rows:minmax(52px, auto); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+  }
+</style>
+
+<div class="page">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="eyebrow">Magyar névnapok</span>
+      <h1>Névnapnaptár</h1>
+    </div>
+    <div class="search-wrap">
+      <label for="search">Kinek a névnapját keresed?</label>
+      <div class="search-row">
+        <input id="search" type="text" placeholder="pl. Mária, Gergő…" list="name-list" autocomplete="off">
+        <button id="search-clear" type="button" aria-label="Keresés törlése">×</button>
+      </div>
+      <datalist id="name-list"></datalist>
+      <div id="search-result"></div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="rail">
+      <div class="hero">
+        <div class="eyebrow" id="hero-eyebrow">Ma van</div>
+        <div class="date-row">
+          <div class="daynum" id="hero-day">—</div>
+          <div class="date-meta">
+            <div class="weekday" id="hero-weekday">—</div>
+            <div class="monthyear" id="hero-monthyear">—</div>
+          </div>
+        </div>
+        <div class="names" id="hero-names">—</div>
+        <div class="motif" aria-hidden="true"></div>
+      </div>
+
+      <div class="card">
+        <h2>Következő napok</h2>
+        <ul class="upcoming-list" id="upcoming-list"></ul>
+      </div>
+    </div>
+
+    <div class="cal-card">
+      <div class="cal-head">
+        <div class="cal-title" id="cal-title">—</div>
+        <div class="cal-nav">
+          <button class="cal-btn" id="prev-btn" aria-label="Előző hónap">‹</button>
+          <button class="cal-btn today-btn" id="today-btn">Ma</button>
+          <button class="cal-btn" id="next-btn" aria-label="Következő hónap">›</button>
+        </div>
+      </div>
+      <div class="weekrow">
+        <div>H</div><div>K</div><div>Sze</div><div>Cs</div><div>P</div><div>Szo</div><div>V</div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="selected-strip" id="selected-strip">Kattints egy napra a naptárban a névnap megtekintéséhez.</div>
+    </div>
+  </div>
+
+  <footer>
+    A névnapok a széles körben használt magyar névnaptárt követik — egyes naptárak másod­neveket eltérően rendelhetnek egy-egy naphoz.
+    Február 29-éhez hagyományosan nem tartozik névnap.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // month → array of day entries (index 0 = day 1), each entry = array of names
+  var NAMEDAYS = {
+    1: [["Fruzsina"],["Ábel"],["Genovéva","Benjámin"],["Titusz","Leona"],["Simon"],["Boldizsár"],["Attila","Ramóna"],["Gyöngyvér"],["Marcell"],["Melánia"],["Ágota"],["Ernő"],["Veronika"],["Bódog"],["Loránd","Lóránt"],["Gusztáv"],["Antal","Antónia"],["Piroska"],["Sára","Márió"],["Fábián","Sebestyén"],["Ágnes"],["Vince","Artúr"],["Zelma","Rajmund"],["Timót"],["Pál"],["Vanda","Paula"],["Angelika"],["Károly","Karola"],["Adél"],["Martina","Gerda"],["Marcella"]],
+    2: [["Ignác"],["Karolina","Aida"],["Balázs"],["Csenge","Ráhel"],["Ágota","Ingrid"],["Dorottya","Dóra"],["Tódor","Rómeó"],["Aranka"],["Abigél","Alex"],["Elvira"],["Bertold","Marietta"],["Lívia","Lídia"],["Ella","Linda"],["Bálint","Valentin"],["Georgina","Kolos"],["Julianna","Lilla"],["Donát"],["Bernadett"],["Zsuzsanna"],["Aladár","Álmos"],["Eleonóra"],["Gerzson"],["Alfréd"],["Mátyás"],["Géza"],["Edina"],["Ákos","Bátor"],["Elemér"]],
+    3: [["Albin"],["Lujza"],["Kornélia"],["Kázmér"],["Adorján","Adrián"],["Leonóra","Inez"],["Tamás"],["Zoltán"],["Fanni","Franciska"],["Ildikó"],["Szilárd"],["Gergely"],["Krisztián","Ajtony"],["Matild"],["Kristóf"],["Henrietta"],["Gertrúd"],["Sándor","Ede"],["József"],["Klaudia"],["Benedek"],["Beáta","Izolda"],["Emőke"],["Gábor","Karina"],["Írisz","Irén"],["Emánuel"],["Hajnalka"],["Gedeon","Johanna"],["Auguszta"],["Zalán"],["Árpád"]],
+    4: [["Hugó"],["Áron"],["Buda","Richárd"],["Izidor"],["Vince"],["Vilmos","Bíborka"],["Herman"],["Dénes"],["Erhard"],["Zsolt"],["Leó","Szaniszló"],["Gyula"],["Ida"],["Tibor"],["Anasztázia","Tas"],["Csongor"],["Rudolf"],["Andrea","Ilma"],["Emma"],["Tivadar"],["Konrád"],["Csilla","Noémi"],["Béla"],["György"],["Márk"],["Ervin"],["Zita"],["Valéria"],["Péter"],["Katalin","Kitti"]],
+    5: [["Fülöp","Jakab"],["Zsigmond"],["Irma","Tímea"],["Mónika","Flórián"],["Györgyi"],["Ivett","Frida"],["Gizella"],["Mihály"],["Gergely"],["Ármin","Pálma"],["Ferenc"],["Pongrác"],["Szervác","Imola"],["Bonifác"],["Szonja","Zsófia"],["Botond","Mózes"],["Paszkál"],["Erik","Alexandra"],["Ivó","Milán"],["Bernát","Felícia"],["Konstantin"],["Júlia","Rita"],["Dezső"],["Eszter","Eliza"],["Orbán"],["Fülöp","Evelin"],["Hella"],["Emil","Csanád"],["Magdolna"],["Janka","Zsanett"],["Angéla","Petronella"]],
+    6: [["Tünde"],["Kármen","Anita"],["Klotild"],["Bulcsú"],["Fatime"],["Norbert","Cintia"],["Róbert"],["Medárd"],["Félix"],["Margit","Gréta"],["Barnabás"],["Villő"],["Antal","Anett"],["Vazul"],["Jolán","Vid"],["Jusztin"],["Alida","Laura"],["Arnold","Levente"],["Gyárfás"],["Rafael"],["Alajos","Leila"],["Paulina"],["Zoltán"],["Iván"],["Vilmos"],["János","Pál"],["László"],["Levente","Irén"],["Péter","Pál"],["Pál"]],
+    7: [["Tihamér","Annamária"],["Ottó"],["Kornél","Soma"],["Ulrik"],["Emese","Sarolta"],["Csaba"],["Apollónia"],["Ellák"],["Lukrécia"],["Amália"],["Nóra","Lili"],["Izabella","Dalma"],["Jenő"],["Örs","Stella"],["Henrik","Roland"],["Valter"],["Elek","Endre"],["Frigyes"],["Emília"],["Illés"],["Dániel","Daniella"],["Magdolna"],["Lenke"],["Kinga","Kincső"],["Kristóf","Jakab"],["Anna","Anikó"],["Olga","Liliána"],["Szabolcs"],["Márta","Flóra"],["Judit","Xénia"],["Oszkár"]],
+    8: [["Boglárka"],["Lehel"],["Hermina"],["Domonkos","Dominika"],["Krisztina"],["Berta","Bettina"],["Ibolya"],["László"],["Emőd"],["Lőrinc"],["Zsuzsanna","Tiborc"],["Klára"],["Ipoly"],["Marcell"],["Mária"],["Ábrahám"],["Jácint"],["Ilona"],["Huba"],["István"],["Sámuel","Hajna"],["Menyhért","Mirjam"],["Bence"],["Bertalan"],["Lajos","Patrícia"],["Izsó"],["Gáspár"],["Ágoston"],["Beatrix","Erna"],["Rózsa"],["Erika","Bella"]],
+    9: [["Egyed","Egon"],["Rebeka","Dorina"],["Hilda"],["Rozália"],["Viktor","Lőrinc"],["Zakariás"],["Regina"],["Mária","Adrienn"],["Ádám"],["Nikolett","Hunor"],["Teodóra"],["Mária"],["Kornél"],["Szeréna","Roxána"],["Enikő","Melitta"],["Edit"],["Zsófia"],["Diána"],["Vilhelmina"],["Friderika"],["Máté","Mirella"],["Móric"],["Tekla"],["Gellért","Mercédesz"],["Eufrozina","Kende"],["Jusztina"],["Adalbert"],["Vencel"],["Mihály"],["Jeromos"]],
+    10: [["Malvin"],["Petra"],["Helga","Ida"],["Ferenc"],["Aurél"],["Brúnó","Renáta"],["Amália"],["Koppány"],["Dénes"],["Gedeon"],["Brigitta"],["Miksa"],["Kálmán","Ede"],["Helén"],["Teréz"],["Gál"],["Hedvig"],["Lukács"],["Nándor"],["Vendel"],["Orsolya"],["Előd"],["Gyöngyi","Nikoletta"],["Salamon"],["Blanka","Bianka"],["Dömötör"],["Szabina"],["Simon","Szimonetta"],["Nárcisz"],["Alfonz"],["Farkas"]],
+    11: [["Marianna"],["Achilles"],["Győző"],["Károly"],["Imre"],["Lénárd"],["Rezső"],["Zsombor"],["Tivadar"],["Réka"],["Márton"],["Jónás","Renátó"],["Szilvia"],["Aliz"],["Albert","Lipót"],["Ödön"],["Gergő","Hortenzia"],["Jenő"],["Erzsébet"],["Jolán"],["Olivér"],["Cecília"],["Kelemen","Klementina"],["Emma"],["Katalin"],["Virág"],["Virgil"],["Stefánia"],["Taksony"],["András","Andor"]],
+    12: [["Elza"],["Melinda","Vivien"],["Ferenc","Olívia"],["Barbara","Borbála"],["Vilma"],["Miklós"],["Ambrus"],["Mária"],["Natália"],["Judit"],["Árpád"],["Gabriella"],["Luca","Otília"],["Szilárda"],["Valér"],["Aletta","Etelka"],["Lázár","Olimpia"],["Auguszta"],["Viola"],["Teofil"],["Tamás"],["Zénó"],["Viktória"],["Ádám","Éva"],["Eugénia"],["István"],["János"],["Kamilla"],["Tamás","Tamara"],["Dávid"],["Szilveszter"]]
+  };
+
+  var MONTH_NAMES = ["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"];
+  var WEEKDAY_FULL = ["vasárnap","hétfő","kedd","szerda","csütörtök","péntek","szombat"];
+  var WEEKDAY_SHORT = ["V","H","K","Sze","Cs","P","Szo"];
+
+  function isLeap(y){ return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
+  function daysInMonth(y, m){ return new Date(y, m, 0).getDate(); }
+  function getNames(m, d){
+    if (m === 2 && d === 29) return [];
+    var entry = NAMEDAYS[m][d - 1];
+    return entry || [];
+  }
+  function normalize(s){
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  }
+  function pad(n){ return n < 10 ? '0' + n : '' + n; }
+
+  var today = new Date();
+  var todayY = today.getFullYear(), todayM = today.getMonth() + 1, todayD = today.getDate();
+
+  var view = { year: todayY, month: todayM };
+  try {
+    var saved = JSON.parse(localStorage.getItem('nevnapnaptar-view') || 'null');
+    if (saved && saved.year && saved.month) view = saved;
+  } catch (e) {}
+
+  var selected = null; // {year, month, day}
+
+  // ---- build search index ----
+  var allEntries = []; // {month, day, name, norm}
+  var namesSeen = {};
+  for (var m = 1; m <= 12; m++) {
+    NAMEDAYS[m].forEach(function(names, idx){
+      var d = idx + 1;
+      names.forEach(function(n){
+        allEntries.push({ month: m, day: d, name: n, norm: normalize(n) });
+        namesSeen[n] = true;
+      });
+    });
+  }
+  var uniqueNames = Object.keys(namesSeen).sort(function(a,b){ return a.localeCompare(b, 'hu'); });
+  var datalist = document.getElementById('name-list');
+  uniqueNames.forEach(function(n){
+    var opt = document.createElement('option');
+    opt.value = n;
+    datalist.appendChild(opt);
+  });
+
+  // ---- render hero ----
+  function renderHero(){
+    var names = getNames(todayM, todayD);
+    document.getElementById('hero-day').textContent = todayD;
+    document.getElementById('hero-weekday').textContent = WEEKDAY_FULL[today.getDay()];
+    document.getElementById('hero-monthyear').textContent = MONTH_NAMES[todayM - 1] + ' · ' + todayY;
+    var namesEl = document.getElementById('hero-names');
+    namesEl.innerHTML = names.length
+      ? names.join(', ')
+      : '<span class="empty">Ma nincs névnap.</span>';
+  }
+
+  // ---- render upcoming ----
+  function renderUpcoming(){
+    var list = document.getElementById('upcoming-list');
+    list.innerHTML = '';
+    for (var i = 1; i <= 5; i++) {
+      var d = new Date(todayY, todayM - 1, todayD + i);
+      var y = d.getFullYear(), mo = d.getMonth() + 1, da = d.getDate();
+      var names = getNames(mo, da);
+      var li = document.createElement('li');
+      var dateSpan = document.createElement('span');
+      dateSpan.className = 'u-date';
+      dateSpan.textContent = WEEKDAY_SHORT[d.getDay()] + ' · ' + MONTH_NAMES[mo-1].slice(0,3) + '. ' + da + '.';
+      var nameSpan = document.createElement('span');
+      nameSpan.className = names.length ? 'u-names' : 'u-names empty';
+      nameSpan.textContent = names.length ? names.join(', ') : '—';
+      li.appendChild(dateSpan);
+      li.appendChild(nameSpan);
+      list.appendChild(li);
+    }
+  }
+
+  // ---- calendar grid ----
+  var searchHit = null; // {year, month, day}
+
+  function buildCells(year, month){
+    var firstDow = new Date(year, month - 1, 1).getDay(); // 0=Sun
+    var leadCount = (firstDow + 6) % 7; // Monday-start offset
+    var thisMonthDays = daysInMonth(year, month);
+    var prevMonth = month === 1 ? 12 : month - 1;
+    var prevYear = month === 1 ? year - 1 : year;
+    var nextMonth = month === 12 ? 1 : month + 1;
+    var nextYear = month === 12 ? year + 1 : year;
+    var prevMonthDays = daysInMonth(prevYear, prevMonth);
+
+    var cells = [];
+    for (var i = 0; i < leadCount; i++) {
+      var dnum = prevMonthDays - leadCount + 1 + i;
+      cells.push({ year: prevYear, month: prevMonth, day: dnum, inMonth: false, names: getNames(prevMonth, dnum) });
+    }
+    for (var d = 1; d <= thisMonthDays; d++) {
+      cells.push({ year: year, month: month, day: d, inMonth: true, names: getNames(month, d) });
+    }
+    var trailCount = (7 - (cells.length % 7)) % 7;
+    for (var j = 1; j <= trailCount; j++) {
+      cells.push({ year: nextYear, month: nextMonth, day: j, inMonth: false, names: getNames(nextMonth, j) });
+    }
+    return cells;
+  }
+
+  function renderCalendar(){
+    document.getElementById('cal-title').textContent = MONTH_NAMES[view.month - 1] + ' · ' + view.year;
+    var grid = document.getElementById('cal-grid');
+    grid.innerHTML = '';
+    var cells = buildCells(view.year, view.month);
+    cells.forEach(function(c){
+      var el = document.createElement('div');
+      el.className = 'cell' + (c.inMonth ? '' : ' out');
+      var isToday = c.year === todayY && c.month === todayM && c.day === todayD;
+      if (isToday) el.classList.add('today');
+      if (selected && selected.year === c.year && selected.month === c.month && selected.day === c.day) el.classList.add('selected');
+      if (searchHit && searchHit.year === c.year && searchHit.month === c.month && searchHit.day === c.day) el.classList.add('hit');
+
+      var dnum = document.createElement('div');
+      dnum.className = 'dnum';
+      dnum.textContent = c.day;
+      var dnames = document.createElement('div');
+      dnames.className = 'dnames';
+      dnames.textContent = c.names.length ? c.names.join(', ') : '';
+
+      el.appendChild(dnum);
+      el.appendChild(dnames);
+      el.tabIndex = 0;
+      el.setAttribute('role', 'button');
+      el.setAttribute('aria-label', c.day + '. ' + MONTH_NAMES[c.month-1] + (c.names.length ? ', ' + c.names.join(', ') : ', nincs névnap'));
+      el.addEventListener('click', function(cell){
+        return function(){ selectDay(cell); };
+      }(c));
+      el.addEventListener('keydown', function(cell){
+        return function(ev){ if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectDay(cell); } };
+      }(c));
+      grid.appendChild(el);
+    });
+  }
+
+  function selectDay(c){
+    selected = { year: c.year, month: c.month, day: c.day };
+    var strip = document.getElementById('selected-strip');
+    var dow = WEEKDAY_FULL[new Date(c.year, c.month - 1, c.day).getDay()];
+    var label = c.day + '. ' + MONTH_NAMES[c.month - 1] + ', ' + dow + ':';
+    strip.innerHTML = label + ' <strong>' + (c.names.length ? c.names.join(', ') : 'nincs névnap') + '</strong>';
+    renderCalendar();
+  }
+
+  function goTo(year, month){
+    view = { year: year, month: month };
+    try { localStorage.setItem('nevnapnaptar-view', JSON.stringify(view)); } catch (e) {}
+    renderCalendar();
+  }
+
+  document.getElementById('prev-btn').addEventListener('click', function(){
+    var m = view.month - 1, y = view.year;
+    if (m < 1) { m = 12; y -= 1; }
+    goTo(y, m);
+  });
+  document.getElementById('next-btn').addEventListener('click', function(){
+    var m = view.month + 1, y = view.year;
+    if (m > 12) { m = 1; y += 1; }
+    goTo(y, m);
+  });
+  document.getElementById('today-btn').addEventListener('click', function(){
+    goTo(todayY, todayM);
+    selectDay({ year: todayY, month: todayM, day: todayD, names: getNames(todayM, todayD) });
+  });
+
+  // ---- search ----
+  function daysUntil(y, m, d){
+    var target = new Date(y, m - 1, d);
+    var base = new Date(todayY, todayM - 1, todayD);
+    return Math.round((target - base) / 86400000);
+  }
+
+  function runSearch(){
+    var raw = document.getElementById('search').value;
+    var resultEl = document.getElementById('search-result');
+    resultEl.classList.remove('hit');
+    if (!raw.trim()) { resultEl.textContent = ''; searchHit = null; renderCalendar(); return; }
+    var norm = normalize(raw);
+    var matches = allEntries.filter(function(e){ return e.norm === norm; });
+    if (!matches.length) matches = allEntries.filter(function(e){ return e.norm.indexOf(norm) === 0; });
+    if (!matches.length) matches = allEntries.filter(function(e){ return e.norm.indexOf(norm) !== -1; });
+    if (!matches.length) {
+      resultEl.textContent = 'Nincs ilyen névnap a naptárban.';
+      searchHit = null; renderCalendar();
+      return;
+    }
+    var best = null, bestDiff = Infinity;
+    matches.forEach(function(e){
+      var diff = daysUntil(todayY, e.month, e.day);
+      if (diff < 0) diff = daysUntil(todayY + 1, e.month, e.day);
+      if (diff < bestDiff) { bestDiff = diff; best = e; }
+    });
+    var y = bestDiff >= 0 && daysUntil(todayY, best.month, best.day) === bestDiff ? todayY : todayY + 1;
+    searchHit = { year: y, month: best.month, day: best.day };
+    goTo(y, best.month);
+    var when = bestDiff === 0 ? 'ma van!' : bestDiff === 1 ? 'holnap lesz' : bestDiff + ' nap múlva';
+    resultEl.classList.add('hit');
+    resultEl.innerHTML = '<strong>' + best.name + '</strong> névnapja: ' + best.day + '. ' + MONTH_NAMES[best.month - 1] + ' — ' + when + '.';
+  }
+
+  var searchInput = document.getElementById('search');
+  searchInput.addEventListener('input', runSearch);
+  searchInput.addEventListener('change', runSearch);
+  document.getElementById('search-clear').addEventListener('click', function(){
+    searchInput.value = '';
+    runSearch();
+    searchInput.focus();
+  });
+
+  // ---- init ----
+  renderHero();
+  renderUpcoming();
+  renderCalendar();
+})();
+</script>

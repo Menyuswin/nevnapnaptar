@@ -211,6 +211,57 @@
   .htag .dot.nat{ background:var(--nat); }
   .htag .dot.cat{ background:var(--cat); }
 
+  /* ---- followed names (star toggle) ---- */
+  .name-chip{
+    font:inherit; color:inherit;
+    background:none; border:none; padding:0; cursor:pointer;
+    display:inline-flex; align-items:baseline; gap:3px;
+  }
+  .name-chip .star{ font-size:.75em; opacity:.4; transition:opacity .15s ease; }
+  .name-chip:hover .star, .name-chip:focus-visible .star{ opacity:.8; }
+  .name-chip.followed .star{ opacity:1; }
+  .name-chip:focus-visible{ outline:2px solid currentColor; outline-offset:2px; border-radius:2px; }
+
+  .today-alert{
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px 16px;
+    background:var(--accent); color:var(--accent-ink);
+    border-radius:14px; padding:14px 18px; margin-bottom:18px;
+    font-size:.92rem; font-weight:600; box-shadow:var(--shadow);
+  }
+  .today-alert .mail-btn{
+    font-family:'IBM Plex Mono', monospace; font-size:.78rem; letter-spacing:.03em; text-transform:uppercase;
+    text-decoration:none; color:var(--accent-ink);
+    background:rgba(255,255,255,.18); border-radius:999px; padding:8px 14px;
+    white-space:nowrap;
+  }
+  .today-alert .mail-btn:hover, .today-alert .mail-btn:focus-visible{ background:rgba(255,255,255,.3); }
+
+  .followed-email-row{ margin-bottom:10px; }
+  .followed-email-row label{
+    display:block; font-size:.72rem; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:5px;
+  }
+  #reminder-email{
+    width:100%; font:inherit; font-size:.85rem; box-sizing:border-box;
+    padding:7px 10px; border-radius:8px; border:1px solid var(--line);
+    background:var(--surface-2); color:var(--ink);
+  }
+  #reminder-email:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+
+  .followed-list{ list-style:none; margin:0 0 8px; padding:0; display:flex; flex-direction:column; }
+  .followed-list li{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:7px 0; border-top:1px solid var(--line); font-size:.88rem;
+  }
+  .followed-list li:first-child{ border-top:none; }
+  .followed-list .fl-name{ font-weight:600; }
+  .followed-list .fl-next{ color:var(--muted); font-size:.78rem; }
+  .followed-list .fl-remove{
+    border:none; background:none; color:var(--muted); cursor:pointer; font-size:1rem; line-height:1; padding:2px 4px;
+  }
+  .followed-list .fl-remove:hover{ color:var(--nat); }
+  .followed-empty{ font-size:.82rem; color:var(--muted); margin:0; }
+
   /* ---- calendar ---- */
   .cal-card{ background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
   .cal-head{
@@ -292,7 +343,7 @@
   .yv-date{ color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; padding-top:1px; }
   .yv-holidays{ display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
   .yv-empty{ padding:18px; color:var(--muted); font-size:.9rem; }
-  .weekrow[hidden], .cal-grid[hidden], .selected-strip[hidden], .year-view[hidden]{ display:none !important; }
+  .weekrow[hidden], .cal-grid[hidden], .selected-strip[hidden], .year-view[hidden], .today-alert[hidden]{ display:none !important; }
 
   footer{
     margin-top:22px; font-size:.78rem; color:var(--muted); text-align:center;
@@ -338,6 +389,11 @@
     </div>
   </div>
 
+  <div class="today-alert" id="today-alert" hidden>
+    <span id="today-alert-text"></span>
+    <a class="mail-btn" id="today-alert-mail" href="#">📧 E-mail küldése</a>
+  </div>
+
   <div class="layout">
     <div class="rail">
       <div class="hero">
@@ -357,6 +413,16 @@
       <div class="card">
         <h2>Következő napok</h2>
         <ul class="upcoming-list" id="upcoming-list"></ul>
+      </div>
+
+      <div class="card">
+        <h2>Követett névnapok</h2>
+        <div class="followed-email-row">
+          <label for="reminder-email">E-mail címzett (nem kötelező)</label>
+          <input type="email" id="reminder-email" placeholder="te@pelda.hu" autocomplete="email">
+        </div>
+        <ul class="followed-list" id="followed-list"></ul>
+        <p class="followed-empty" id="followed-empty">Kattints egy csillagra egy névnél a mai nap kártyán vagy a kiválasztott napnál, hogy kövesd.</p>
       </div>
     </div>
 
@@ -509,6 +575,101 @@
 
   var selected = null; // {year, month, day}
 
+  // ---- followed names (star toggle + e-mail reminder) ----
+  function loadFollowed(){
+    try {
+      var v = JSON.parse(localStorage.getItem('kalendarium-followed') || 'null');
+      return Array.isArray(v) ? v : [];
+    } catch (e) { return []; }
+  }
+  function saveFollowed(){
+    try { localStorage.setItem('kalendarium-followed', JSON.stringify(followed)); } catch (e) {}
+  }
+  function loadReminderEmail(){
+    try { return localStorage.getItem('kalendarium-reminder-email') || ''; } catch (e) { return ''; }
+  }
+  function saveReminderEmail(v){
+    try { localStorage.setItem('kalendarium-reminder-email', v); } catch (e) {}
+  }
+  var followed = loadFollowed();
+
+  function nameChipHtml(name){
+    var isF = followed.indexOf(name) !== -1;
+    return '<button type="button" class="name-chip' + (isF ? ' followed' : '') + '" data-name="' + esc(name) +
+      '" aria-pressed="' + isF + '" aria-label="' + esc(name) + (isF ? ' követése megszüntetése' : ' követése') + '">' +
+      '<span class="star" aria-hidden="true">' + (isF ? '★' : '☆') + '</span>' + esc(name) + '</button>';
+  }
+
+  function nextOccurrence(name){
+    var matches = allEntries.filter(function(e){ return e.name === name; });
+    if (!matches.length) return null;
+    var best = null, bestDiff = Infinity;
+    matches.forEach(function(e){
+      var diff = daysUntil(todayY, e.month, e.day);
+      if (diff < 0) diff = daysUntil(todayY + 1, e.month, e.day);
+      if (diff < bestDiff) { bestDiff = diff; best = e; }
+    });
+    return { entry: best, diff: bestDiff };
+  }
+
+  function renderFollowedList(){
+    var listEl = document.getElementById('followed-list');
+    var emptyEl = document.getElementById('followed-empty');
+    if (!followed.length) { listEl.innerHTML = ''; emptyEl.hidden = false; return; }
+    emptyEl.hidden = true;
+    var rows = followed.map(function(name){ return { name: name, occ: nextOccurrence(name) }; })
+      .sort(function(a, b){ return (a.occ ? a.occ.diff : Infinity) - (b.occ ? b.occ.diff : Infinity); });
+    listEl.innerHTML = rows.map(function(r){
+      var nextText = !r.occ ? '' : r.occ.diff === 0 ? 'ma' : r.occ.diff === 1 ? 'holnap'
+        : r.occ.entry.day + '. ' + MONTH_NAMES[r.occ.entry.month - 1].slice(0, 3) + '.';
+      return '<li><span class="fl-info"><span class="fl-name">' + esc(r.name) + '</span> <span class="fl-next">' + esc(nextText) + '</span></span>' +
+        '<button type="button" class="fl-remove" data-name="' + esc(r.name) + '" aria-label="' + esc(r.name) + ' törlése a követettek közül">×</button></li>';
+    }).join('');
+  }
+
+  function buildMailto(names){
+    var email = (document.getElementById('reminder-email').value || '').trim();
+    var subject = names.length === 1 ? 'Névnap ma: ' + names[0] : 'Mai névnapok: ' + names.join(', ');
+    var body = 'Ma, ' + todayD + '. ' + MONTH_NAMES[todayM - 1] + ' van ' + names.join(' és ') + ' névnapja.' +
+      '\n\n— Küldve a Kalendáriumból (https://menyuswin.github.io/nevnapnaptar/)';
+    return 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  }
+
+  function renderTodayAlert(){
+    var matches = getNames(todayM, todayD).filter(function(n){ return followed.indexOf(n) !== -1; });
+    var alertEl = document.getElementById('today-alert');
+    if (!matches.length) { alertEl.hidden = true; return; }
+    alertEl.hidden = false;
+    document.getElementById('today-alert-text').textContent = '🔔 Ma van ' + matches.join(' és ') + ' névnapja — ezt követed!';
+    document.getElementById('today-alert-mail').href = buildMailto(matches);
+  }
+
+  function refreshSelectedStrip(){
+    if (!selected) return;
+    renderStrip({
+      year: selected.year, month: selected.month, day: selected.day,
+      names: getNames(selected.month, selected.day),
+      holidays: getHolidays(selected.year, selected.month, selected.day)
+    });
+  }
+
+  function toggleFollowed(name){
+    var idx = followed.indexOf(name);
+    if (idx === -1) followed.push(name); else followed.splice(idx, 1);
+    saveFollowed();
+    renderHero();
+    refreshSelectedStrip();
+    renderFollowedList();
+    renderTodayAlert();
+  }
+
+  document.addEventListener('click', function(e){
+    var chip = e.target.closest('.name-chip');
+    if (chip) { e.preventDefault(); toggleFollowed(chip.getAttribute('data-name')); return; }
+    var rm = e.target.closest('.fl-remove');
+    if (rm) { toggleFollowed(rm.getAttribute('data-name')); }
+  });
+
   // ---- build search index ----
   var allEntries = []; // {month, day, name, norm}
   var namesSeen = {};
@@ -537,7 +698,7 @@
     document.getElementById('hero-monthyear').textContent = MONTH_NAMES[todayM - 1] + ' · ' + todayY;
     var namesEl = document.getElementById('hero-names');
     namesEl.innerHTML = names.length
-      ? names.join(', ')
+      ? names.map(nameChipHtml).join(', ')
       : '<span class="empty">Ma nincs névnap.</span>';
     document.getElementById('hero-holidays').innerHTML = holidayTagsHtml(getHolidays(todayY, todayM, todayD));
   }
@@ -643,14 +804,18 @@
     });
   }
 
-  function selectDay(c){
-    selected = { year: c.year, month: c.month, day: c.day };
+  function renderStrip(c){
     var holidays = c.holidays || getHolidays(c.year, c.month, c.day);
     var strip = document.getElementById('selected-strip');
     var dow = WEEKDAY_FULL[new Date(c.year, c.month - 1, c.day).getDay()];
     var label = c.day + '. ' + MONTH_NAMES[c.month - 1] + ', ' + dow + ':';
-    strip.innerHTML = label + ' <strong>' + (c.names.length ? c.names.join(', ') : 'nincs névnap') + '</strong>'
+    strip.innerHTML = label + ' <strong>' + (c.names.length ? c.names.map(nameChipHtml).join(', ') : 'nincs névnap') + '</strong>'
       + (holidays.length ? ' &nbsp;' + holidayTagsHtml(holidays) : '');
+  }
+
+  function selectDay(c){
+    selected = { year: c.year, month: c.month, day: c.day };
+    renderStrip(c);
     renderCalendar();
   }
 
@@ -819,9 +984,19 @@
     searchInput.focus();
   });
 
+  // ---- reminder e-mail field ----
+  var emailInput = document.getElementById('reminder-email');
+  emailInput.value = loadReminderEmail();
+  emailInput.addEventListener('input', function(){
+    saveReminderEmail(emailInput.value);
+    renderTodayAlert();
+  });
+
   // ---- init ----
   renderHero();
   renderUpcoming();
   renderCalendar();
+  renderFollowedList();
+  renderTodayAlert();
 })();
 </script>

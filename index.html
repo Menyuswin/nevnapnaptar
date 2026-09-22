@@ -217,7 +217,7 @@
     gap:10px; flex-wrap:wrap;
   }
   .cal-title{ font-size:1.15rem; font-weight:600; text-transform:capitalize; }
-  .cal-nav{ display:flex; align-items:center; gap:6px; }
+  .cal-nav{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
   .cal-btn{
     display:inline-flex; align-items:center; justify-content:center;
     width:32px; height:32px; border-radius:8px;
@@ -226,10 +226,11 @@
   }
   .cal-btn:hover{ border-color:var(--accent); color:var(--accent); }
   .cal-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
-  .today-btn{
+  .today-btn, .view-btn{
     width:auto; padding:0 12px; font-size:.8rem; font-weight:600;
     letter-spacing:.03em;
   }
+  .view-btn[aria-pressed="true"]{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
 
   .weekrow, .cal-grid{
     display:grid; grid-template-columns:repeat(7,1fr);
@@ -274,6 +275,23 @@
   }
   .selected-strip strong{ color:var(--ink); font-weight:700; margin-left:4px;}
 
+  /* ---- year overview ---- */
+  .year-view{
+    padding:18px; display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));
+    gap:20px 24px;
+  }
+  .yv-month h3{ font-size:.95rem; font-weight:600; margin-bottom:6px; text-transform:capitalize; }
+  .yv-row{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:10px;
+    padding:6px 0; border-top:1px solid var(--line); font-size:.83rem;
+  }
+  .yv-row:first-of-type{ border-top:none; }
+  .yv-date{ color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; padding-top:1px; }
+  .yv-holidays{ display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+  .yv-empty{ padding:18px; color:var(--muted); font-size:.9rem; }
+  .weekrow[hidden], .cal-grid[hidden], .selected-strip[hidden], .year-view[hidden]{ display:none !important; }
+
   footer{
     margin-top:22px; font-size:.78rem; color:var(--muted); text-align:center;
     line-height:1.5;
@@ -286,6 +304,17 @@
 
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; }
+  }
+
+  @media print{
+    body{ padding:0; background:#fff; color:#000; display:block; }
+    .search-wrap, .cal-nav, .selected-strip, footer, .rail{ display:none !important; }
+    .layout{ display:block; }
+    .cal-card{ box-shadow:none; border:none; }
+    .cell{ break-inside:avoid; border-color:#ccc; }
+    .weekrow div, .cal-title{ color:#000; }
+    .yv-month{ break-inside:avoid; }
+    .htag{ color:#000; }
   }
 </style>
 
@@ -333,15 +362,19 @@
       <div class="cal-head">
         <div class="cal-title" id="cal-title">—</div>
         <div class="cal-nav">
-          <button class="cal-btn" id="prev-btn" aria-label="Előző hónap">‹</button>
+          <button class="cal-btn" id="prev-btn" aria-label="Előző">‹</button>
           <button class="cal-btn today-btn" id="today-btn">Ma</button>
-          <button class="cal-btn" id="next-btn" aria-label="Következő hónap">›</button>
+          <button class="cal-btn" id="next-btn" aria-label="Következő">›</button>
+          <button class="cal-btn view-btn" id="year-toggle-btn" aria-pressed="false">Éves áttekintés</button>
+          <button class="cal-btn" id="export-btn" aria-label="Ünnepek letöltése naptárfájlként (.ics)" title="Naptárfájl (.ics)">⤓ .ics</button>
+          <button class="cal-btn" id="print-btn" aria-label="Nyomtatás" title="Nyomtatás">🖶</button>
         </div>
       </div>
-      <div class="weekrow">
+      <div class="weekrow" id="weekrow">
         <div>H</div><div>K</div><div>Sze</div><div>Cs</div><div>P</div><div>Szo</div><div>V</div>
       </div>
       <div class="cal-grid" id="cal-grid"></div>
+      <div class="year-view" id="year-view" hidden></div>
       <div class="selected-strip" id="selected-strip">Kattints egy napra a naptárban a névnap megtekintéséhez.</div>
     </div>
   </div>
@@ -625,19 +658,119 @@
     renderCalendar();
   }
 
+  // ---- year overview ----
+  var mode = 'month'; // 'month' | 'year'
+
+  function renderYearView(){
+    var year = view.year, html = '';
+    for (var m = 1; m <= 12; m++) {
+      var days = daysInMonth(year, m), rows = '';
+      for (var d = 1; d <= days; d++) {
+        var hs = getHolidays(year, m, d);
+        if (!hs.length) continue;
+        var dow = WEEKDAY_SHORT[new Date(year, m - 1, d).getDay()];
+        rows += '<div class="yv-row"><span class="yv-date">' + dow + ' · ' + d + '.</span>' +
+          '<span class="yv-holidays">' + holidayTagsHtml(hs) + '</span></div>';
+      }
+      if (!rows) continue;
+      html += '<div class="yv-month"><h3>' + esc(MONTH_NAMES[m - 1]) + '</h3>' + rows + '</div>';
+    }
+    document.getElementById('year-view').innerHTML = html || '<p class="yv-empty">Nincs megjeleníthető ünnep ebben az évben.</p>';
+  }
+
+  function setMode(newMode){
+    mode = newMode;
+    var isYear = mode === 'year';
+    document.getElementById('weekrow').hidden = isYear;
+    document.getElementById('cal-grid').hidden = isYear;
+    document.getElementById('selected-strip').hidden = isYear;
+    document.getElementById('year-view').hidden = !isYear;
+    var toggleBtn = document.getElementById('year-toggle-btn');
+    toggleBtn.setAttribute('aria-pressed', String(isYear));
+    toggleBtn.textContent = isYear ? 'Hónapnézet' : 'Éves áttekintés';
+    if (isYear) {
+      renderYearView();
+      document.getElementById('cal-title').textContent = String(view.year);
+    } else {
+      renderCalendar();
+    }
+  }
+
+  function goToYear(year){
+    view = { year: year, month: view.month };
+    try { localStorage.setItem('kalendarium-view', JSON.stringify(view)); } catch (e) {}
+    renderYearView();
+    document.getElementById('cal-title').textContent = String(view.year);
+  }
+
+  document.getElementById('year-toggle-btn').addEventListener('click', function(){
+    setMode(mode === 'year' ? 'month' : 'year');
+  });
+
   document.getElementById('prev-btn').addEventListener('click', function(){
+    if (mode === 'year') { goToYear(view.year - 1); return; }
     var m = view.month - 1, y = view.year;
     if (m < 1) { m = 12; y -= 1; }
     goTo(y, m);
   });
   document.getElementById('next-btn').addEventListener('click', function(){
+    if (mode === 'year') { goToYear(view.year + 1); return; }
     var m = view.month + 1, y = view.year;
     if (m > 12) { m = 1; y += 1; }
     goTo(y, m);
   });
   document.getElementById('today-btn').addEventListener('click', function(){
+    if (mode === 'year') setMode('month');
     goTo(todayY, todayM);
     selectDay({ year: todayY, month: todayM, day: todayD, names: getNames(todayM, todayD) });
+  });
+
+  // ---- export (.ics) ----
+  function pad2(n){ return n < 10 ? '0' + n : '' + n; }
+  function icsDate(y, m, d){ return y + pad2(m) + pad2(d); }
+  function icsEscape(s){ return String(s).replace(/([,;])/g, '\\$1'); }
+
+  function buildIcs(year){
+    var lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Kalendárium//HU', 'CALSCALE:GREGORIAN'];
+    for (var m = 1; m <= 12; m++) {
+      var days = daysInMonth(year, m);
+      for (var d = 1; d <= days; d++) {
+        getHolidays(year, m, d).forEach(function(h){
+          var typeLabel = h.types.indexOf('nat') !== -1 && h.types.indexOf('cat') !== -1
+            ? 'Nemzeti és katolikus ünnep' : h.types[0] === 'nat' ? 'Nemzeti ünnep' : 'Katolikus ünnep';
+          var start = icsDate(year, m, d);
+          var endD = new Date(year, m - 1, d + 1);
+          var end = icsDate(endD.getFullYear(), endD.getMonth() + 1, endD.getDate());
+          lines.push('BEGIN:VEVENT');
+          lines.push('UID:' + start + '-' + icsEscape(h.label).replace(/\s+/g, '') + '@kalendarium.local');
+          lines.push('DTSTART;VALUE=DATE:' + start);
+          lines.push('DTEND;VALUE=DATE:' + end);
+          lines.push('SUMMARY:' + icsEscape(h.label));
+          lines.push('DESCRIPTION:' + icsEscape(typeLabel));
+          lines.push('END:VEVENT');
+        });
+      }
+    }
+    lines.push('END:VCALENDAR');
+    return lines.join('\r\n');
+  }
+
+  document.getElementById('export-btn').addEventListener('click', function(){
+    var ics = buildIcs(view.year);
+    var blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'kalendarium-unnepek-' + view.year + '.ics';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
+
+  // ---- print ----
+  document.getElementById('print-btn').addEventListener('click', function(){
+    window.print();
   });
 
   // ---- search ----

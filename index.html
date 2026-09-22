@@ -1,4 +1,4 @@
-<title>Névnapnaptár</title>
+<title>Kalendárium</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,6 +15,10 @@
     --gold:#B8863B;
     --gold-soft:#E9D9B8;
     --hit:#FDF3E3;
+    --nat:#B23A2E;
+    --nat-tint:#F6DEDA;
+    --cat:#6B4F9E;
+    --cat-tint:#E6DEF2;
     --shadow: 0 1px 2px rgba(15,40,33,.06), 0 8px 24px -12px rgba(15,40,33,.18);
   }
   @media (prefers-color-scheme: dark){
@@ -30,6 +34,10 @@
       --gold:#E3B65B;
       --gold-soft:#3B3220;
       --hit:#2A2413;
+      --nat:#E08A78;
+      --nat-tint:#3A211D;
+      --cat:#B7A0E0;
+      --cat-tint:#2C2140;
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.55);
     }
   }
@@ -45,6 +53,10 @@
     --gold:#E3B65B;
     --gold-soft:#3B3220;
     --hit:#2A2413;
+    --nat:#E08A78;
+    --nat-tint:#3A211D;
+    --cat:#B7A0E0;
+    --cat-tint:#2C2140;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -14px rgba(0,0,0,.55);
   }
 
@@ -144,6 +156,18 @@
     text-wrap:balance;
   }
   .hero .names .empty{ font-style:normal; font-size:1rem; opacity:.85; }
+  .hero .holidays{
+    margin-top:12px; display:flex; flex-wrap:wrap; gap:7px 10px;
+  }
+  .hero .holidays .htag{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:.75rem; font-weight:600; color:var(--accent-ink);
+    background:rgba(255,255,255,.16); border-radius:999px; padding:4px 11px 4px 8px;
+  }
+  .hero .holidays .htag .dot{ width:7px; height:7px; border-radius:50%; flex:none; }
+  .hero .holidays .htag .dot.nat{ background:#FF9782; }
+  .hero .holidays .htag .dot.cat{ background:#D7C4FF; }
+
   .hero .motif{
     height:7px; margin-top:16px; border-radius:4px;
     background:repeating-linear-gradient(115deg,
@@ -168,9 +192,22 @@
     font-size:.9rem;
   }
   .upcoming-list li:first-child{ border-top:none; }
+  .upcoming-list li{ flex-wrap:wrap; }
   .upcoming-list .u-date{ color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .upcoming-list .u-main{ display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
   .upcoming-list .u-names{ text-align:right; font-weight:600; }
   .upcoming-list .u-names.empty{ font-weight:400; color:var(--muted); }
+  .upcoming-list .u-holidays{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:4px 8px; }
+
+  /* ---- holiday tags (shared) ---- */
+  .htag{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:.72rem; font-weight:600; line-height:1.3; white-space:nowrap;
+    color:var(--muted);
+  }
+  .htag .dot{ width:6px; height:6px; border-radius:50%; flex:none; }
+  .htag .dot.nat{ background:var(--nat); }
+  .htag .dot.cat{ background:var(--cat); }
 
   /* ---- calendar ---- */
   .cal-card{ background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
@@ -217,9 +254,13 @@
     border-radius:50%;
   }
   .cell .dnames{ font-size:.7rem; line-height:1.25; color:var(--muted); }
+  .cell .dholidays{ display:flex; flex-direction:column; gap:2px; margin-top:1px; }
+  .cell .dholidays .htag{ font-size:.62rem; }
+  .cell .dholidays .htag .dot{ width:5px; height:5px; }
   .cell.out{ background:var(--surface-2); }
   .cell.out .dnum{ color:var(--muted); opacity:.6; }
   .cell.out .dnames{ opacity:.55; }
+  .cell.out .dholidays{ opacity:.55; }
   .cell.today .dnum{ background:var(--gold); color:var(--accent-ink); }
   .cell.today{ background:var(--gold-soft); }
   .cell.today .dnames{ color:var(--ink); font-weight:600; }
@@ -252,8 +293,8 @@
 
   <div class="topbar">
     <div class="brand">
-      <span class="eyebrow">Magyar névnapok</span>
-      <h1>Névnapnaptár</h1>
+      <span class="eyebrow">Névnapok · ünnepek</span>
+      <h1>Kalendárium</h1>
     </div>
     <div class="search-wrap">
       <label for="search">Kinek a névnapját keresed?</label>
@@ -278,6 +319,7 @@
           </div>
         </div>
         <div class="names" id="hero-names">—</div>
+        <div class="holidays" id="hero-holidays"></div>
         <div class="motif" aria-hidden="true"></div>
       </div>
 
@@ -307,6 +349,7 @@
   <footer>
     A névnapok a széles körben használt magyar névnaptárt követik — egyes naptárak másod­neveket eltérően rendelhetnek egy-egy naphoz.
     Február 29-éhez hagyományosan nem tartozik névnap.
+    A piros jelölésű napok Magyarország hivatalos munkaszüneti napjai, a lilák a katolikus egyházi év főbb ünnepei — a húsvéthez kötött, mozgó ünnepek (pl. nagypéntek, pünkösd, úrnapja) minden évre automatikusan újraszámolva.
   </footer>
 </div>
 
@@ -334,6 +377,80 @@
   var WEEKDAY_FULL = ["vasárnap","hétfő","kedd","szerda","csütörtök","péntek","szombat"];
   var WEEKDAY_SHORT = ["V","H","K","Sze","Cs","P","Szo"];
 
+  // ---- national (hivatalos munkaszüneti nap) és katolikus ünnepek ----
+  var NATIONAL_FIXED = {
+    "1-1": "Újév", "3-15": "Nemzeti ünnep", "5-1": "A munka ünnepe",
+    "8-20": "Az államalapítás ünnepe", "10-23": "Nemzeti ünnep",
+    "11-1": "Mindenszentek", "12-25": "Karácsony", "12-26": "Karácsony másnapja"
+  };
+  var CATHOLIC_FIXED = {
+    "1-1": "Szűz Mária, Isten Anyja", "1-6": "Vízkereszt",
+    "2-2": "Gyertyaszentelő Boldogasszony", "3-19": "Szent József",
+    "3-25": "Gyümölcsoltó Boldogasszony", "6-24": "Keresztelő Szent János",
+    "6-29": "Szent Péter és Pál", "8-15": "Nagyboldogasszony",
+    "9-8": "Kisboldogasszony", "9-14": "Szent Kereszt felmagasztalása",
+    "11-1": "Mindenszentek", "11-2": "Halottak napja",
+    "12-8": "Szeplőtelen fogantatás", "12-25": "Karácsony",
+    "12-26": "Szent István első vértanú"
+  };
+  // eltolás húsvétvasárnaptól (napban), [offset, megnevezés]
+  var NATIONAL_MOVABLE = [[-2, "Nagypéntek"], [1, "Húsvéthétfő"], [50, "Pünkösdhétfő"]];
+  var CATHOLIC_MOVABLE = [
+    [-46, "Hamvazószerda"], [-7, "Virágvasárnap"], [-3, "Nagycsütörtök"], [-2, "Nagypéntek"],
+    [0, "Húsvétvasárnap"], [1, "Húsvéthétfő"], [39, "Áldozócsütörtök"],
+    [49, "Pünkösdvasárnap"], [50, "Pünkösdhétfő"], [60, "Úrnapja"]
+  ];
+
+  // Meeus/Jones/Butcher gregorián húsvét-algoritmus
+  function easterSunday(year){
+    var a = year % 19, b = Math.floor(year / 100), c = year % 100;
+    var d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+    var g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+    var i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+    var m = Math.floor((a + 11 * h + 22 * l) / 451);
+    var month = Math.floor((h + l - 7 * m + 114) / 31);
+    var day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(year, month - 1, day);
+  }
+
+  var movableCache = {};
+  function movableMap(year, offsets){
+    var key = year + ':' + offsets.length + (offsets === NATIONAL_MOVABLE ? 'n' : 'c');
+    if (movableCache[key]) return movableCache[key];
+    var easter = easterSunday(year), map = {};
+    offsets.forEach(function(o){
+      var d = new Date(easter.getFullYear(), easter.getMonth(), easter.getDate() + o[0]);
+      map[(d.getMonth() + 1) + '-' + d.getDate()] = o[1];
+    });
+    movableCache[key] = map;
+    return map;
+  }
+
+  function getHolidays(year, m, d){
+    var key = m + '-' + d, raw = [];
+    if (NATIONAL_FIXED[key]) raw.push({ type: 'nat', label: NATIONAL_FIXED[key] });
+    var natMov = movableMap(year, NATIONAL_MOVABLE);
+    if (natMov[key]) raw.push({ type: 'nat', label: natMov[key] });
+    if (CATHOLIC_FIXED[key]) raw.push({ type: 'cat', label: CATHOLIC_FIXED[key] });
+    var catMov = movableMap(year, CATHOLIC_MOVABLE);
+    if (catMov[key]) raw.push({ type: 'cat', label: catMov[key] });
+    // azonos nevű ünnepek (pl. "Karácsony" nemzeti + katolikus) összevonása
+    var byLabel = {}, order = [];
+    raw.forEach(function(h){
+      if (!byLabel[h.label]) { byLabel[h.label] = { label: h.label, types: [] }; order.push(h.label); }
+      if (byLabel[h.label].types.indexOf(h.type) === -1) byLabel[h.label].types.push(h.type);
+    });
+    return order.map(function(l){ return byLabel[l]; });
+  }
+
+  function holidayTagsHtml(holidays){
+    return holidays.map(function(h){
+      var dots = h.types.map(function(t){ return '<span class="dot ' + t + '"></span>'; }).join('');
+      return '<span class="htag">' + dots + esc(h.label) + '</span>';
+    }).join('');
+  }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
   function isLeap(y){ return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
   function daysInMonth(y, m){ return new Date(y, m, 0).getDate(); }
   function getNames(m, d){
@@ -351,7 +468,7 @@
 
   var view = { year: todayY, month: todayM };
   try {
-    var saved = JSON.parse(localStorage.getItem('nevnapnaptar-view') || 'null');
+    var saved = JSON.parse(localStorage.getItem('kalendarium-view') || 'null');
     if (saved && saved.year && saved.month) view = saved;
   } catch (e) {}
 
@@ -387,6 +504,7 @@
     namesEl.innerHTML = names.length
       ? names.join(', ')
       : '<span class="empty">Ma nincs névnap.</span>';
+    document.getElementById('hero-holidays').innerHTML = holidayTagsHtml(getHolidays(todayY, todayM, todayD));
   }
 
   // ---- render upcoming ----
@@ -397,15 +515,25 @@
       var d = new Date(todayY, todayM - 1, todayD + i);
       var y = d.getFullYear(), mo = d.getMonth() + 1, da = d.getDate();
       var names = getNames(mo, da);
+      var holidays = getHolidays(y, mo, da);
       var li = document.createElement('li');
       var dateSpan = document.createElement('span');
       dateSpan.className = 'u-date';
       dateSpan.textContent = WEEKDAY_SHORT[d.getDay()] + ' · ' + MONTH_NAMES[mo-1].slice(0,3) + '. ' + da + '.';
+      var main = document.createElement('span');
+      main.className = 'u-main';
       var nameSpan = document.createElement('span');
       nameSpan.className = names.length ? 'u-names' : 'u-names empty';
       nameSpan.textContent = names.length ? names.join(', ') : '—';
+      main.appendChild(nameSpan);
+      if (holidays.length) {
+        var hSpan = document.createElement('span');
+        hSpan.className = 'u-holidays';
+        hSpan.innerHTML = holidayTagsHtml(holidays);
+        main.appendChild(hSpan);
+      }
       li.appendChild(dateSpan);
-      li.appendChild(nameSpan);
+      li.appendChild(main);
       list.appendChild(li);
     }
   }
@@ -426,14 +554,14 @@
     var cells = [];
     for (var i = 0; i < leadCount; i++) {
       var dnum = prevMonthDays - leadCount + 1 + i;
-      cells.push({ year: prevYear, month: prevMonth, day: dnum, inMonth: false, names: getNames(prevMonth, dnum) });
+      cells.push({ year: prevYear, month: prevMonth, day: dnum, inMonth: false, names: getNames(prevMonth, dnum), holidays: getHolidays(prevYear, prevMonth, dnum) });
     }
     for (var d = 1; d <= thisMonthDays; d++) {
-      cells.push({ year: year, month: month, day: d, inMonth: true, names: getNames(month, d) });
+      cells.push({ year: year, month: month, day: d, inMonth: true, names: getNames(month, d), holidays: getHolidays(year, month, d) });
     }
     var trailCount = (7 - (cells.length % 7)) % 7;
     for (var j = 1; j <= trailCount; j++) {
-      cells.push({ year: nextYear, month: nextMonth, day: j, inMonth: false, names: getNames(nextMonth, j) });
+      cells.push({ year: nextYear, month: nextMonth, day: j, inMonth: false, names: getNames(nextMonth, j), holidays: getHolidays(nextYear, nextMonth, j) });
     }
     return cells;
   }
@@ -460,9 +588,16 @@
 
       el.appendChild(dnum);
       el.appendChild(dnames);
+      if (c.holidays.length) {
+        var dholidays = document.createElement('div');
+        dholidays.className = 'dholidays';
+        dholidays.innerHTML = holidayTagsHtml(c.holidays);
+        el.appendChild(dholidays);
+      }
       el.tabIndex = 0;
       el.setAttribute('role', 'button');
-      el.setAttribute('aria-label', c.day + '. ' + MONTH_NAMES[c.month-1] + (c.names.length ? ', ' + c.names.join(', ') : ', nincs névnap'));
+      var holidayLabel = c.holidays.length ? ', ' + c.holidays.map(function(h){ return h.label; }).join(', ') : '';
+      el.setAttribute('aria-label', c.day + '. ' + MONTH_NAMES[c.month-1] + (c.names.length ? ', ' + c.names.join(', ') : ', nincs névnap') + holidayLabel);
       el.addEventListener('click', function(cell){
         return function(){ selectDay(cell); };
       }(c));
@@ -475,16 +610,18 @@
 
   function selectDay(c){
     selected = { year: c.year, month: c.month, day: c.day };
+    var holidays = c.holidays || getHolidays(c.year, c.month, c.day);
     var strip = document.getElementById('selected-strip');
     var dow = WEEKDAY_FULL[new Date(c.year, c.month - 1, c.day).getDay()];
     var label = c.day + '. ' + MONTH_NAMES[c.month - 1] + ', ' + dow + ':';
-    strip.innerHTML = label + ' <strong>' + (c.names.length ? c.names.join(', ') : 'nincs névnap') + '</strong>';
+    strip.innerHTML = label + ' <strong>' + (c.names.length ? c.names.join(', ') : 'nincs névnap') + '</strong>'
+      + (holidays.length ? ' &nbsp;' + holidayTagsHtml(holidays) : '');
     renderCalendar();
   }
 
   function goTo(year, month){
     view = { year: year, month: month };
-    try { localStorage.setItem('nevnapnaptar-view', JSON.stringify(view)); } catch (e) {}
+    try { localStorage.setItem('kalendarium-view', JSON.stringify(view)); } catch (e) {}
     renderCalendar();
   }
 

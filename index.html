@@ -295,6 +295,7 @@
   }
   .cal-grid{ grid-auto-rows:minmax(64px, auto); }
   .cell{
+    min-width:0;
     border-top:1px solid var(--line); border-left:1px solid var(--line);
     padding:6px 7px; display:flex; flex-direction:column; gap:3px;
     cursor:pointer; background:var(--surface); transition:background .12s ease;
@@ -302,14 +303,16 @@
   .cell:nth-child(7n+1){ border-left:none; }
   .cell:hover{ background:var(--surface-2); }
   .cell:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+  .cell .dwd{ display:none; }
   .cell .dnum{
     font-size:.8rem; font-weight:700; font-variant-numeric:tabular-nums;
     width:22px; height:22px; display:flex; align-items:center; justify-content:center;
     border-radius:50%;
   }
-  .cell .dnames{ font-size:.7rem; line-height:1.25; color:var(--muted); }
+  .cell .dinfo{ display:contents; }
+  .cell .dnames{ font-size:.7rem; line-height:1.25; color:var(--muted); overflow-wrap:break-word; }
   .cell .dholidays{ display:flex; flex-direction:column; gap:2px; margin-top:1px; }
-  .cell .dholidays .htag{ font-size:.62rem; }
+  .cell .dholidays .htag{ font-size:.62rem; white-space:normal; overflow-wrap:break-word; }
   .cell .dholidays .htag .dot{ width:5px; height:5px; }
   .cell.out{ background:var(--surface-2); }
   .cell.out .dnum{ color:var(--muted); opacity:.6; }
@@ -351,8 +354,22 @@
   }
 
   @media (max-width:480px){
-    .cell .dnames{ font-size:.64rem; }
-    .cal-grid{ grid-auto-rows:minmax(52px, auto); }
+    /* 7 egyenlő oszlopba nem fér el olvashatóan egy magyar névsor — napi listára váltunk */
+    .weekrow{ display:none; }
+    .cal-grid{ display:flex; flex-direction:column; }
+    .cell{
+      flex-direction:row; align-items:flex-start; gap:10px;
+      border-left:none; padding:9px 6px;
+    }
+    .cell:first-child{ border-top:none; }
+    .cell .dwd{
+      display:block; flex:none; width:24px; padding-top:3px;
+      font-size:.68rem; font-weight:700; text-transform:uppercase; color:var(--muted);
+    }
+    .cell.today .dwd{ color:var(--ink); }
+    .cell .dinfo{ display:flex; flex-direction:column; gap:3px; flex:1; min-width:0; }
+    .cell .dnames{ font-size:.82rem; }
+    .cell .dholidays .htag{ font-size:.74rem; }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -775,21 +792,28 @@
       if (selected && selected.year === c.year && selected.month === c.month && selected.day === c.day) el.classList.add('selected');
       if (searchHit && searchHit.year === c.year && searchHit.month === c.month && searchHit.day === c.day) el.classList.add('hit');
 
+      var dwd = document.createElement('div');
+      dwd.className = 'dwd';
+      dwd.textContent = WEEKDAY_SHORT[new Date(c.year, c.month - 1, c.day).getDay()];
       var dnum = document.createElement('div');
       dnum.className = 'dnum';
       dnum.textContent = c.day;
+      var dinfo = document.createElement('div');
+      dinfo.className = 'dinfo';
       var dnames = document.createElement('div');
       dnames.className = 'dnames';
       dnames.textContent = c.names.length ? c.names.join(', ') : '';
-
-      el.appendChild(dnum);
-      el.appendChild(dnames);
+      dinfo.appendChild(dnames);
       if (c.holidays.length) {
         var dholidays = document.createElement('div');
         dholidays.className = 'dholidays';
         dholidays.innerHTML = holidayTagsHtml(c.holidays);
-        el.appendChild(dholidays);
+        dinfo.appendChild(dholidays);
       }
+
+      el.appendChild(dwd);
+      el.appendChild(dnum);
+      el.appendChild(dinfo);
       el.tabIndex = 0;
       el.setAttribute('role', 'button');
       var holidayLabel = c.holidays.length ? ', ' + c.holidays.map(function(h){ return h.label; }).join(', ') : '';
